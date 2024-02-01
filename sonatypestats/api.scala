@@ -1,72 +1,79 @@
 package sonatypestats
 
-import java.nio.file._
+import java.nio.file.*
 import java.time.{YearMonth, ZoneOffset}
 
-import sttp.client3._
-import sttp.model._
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+import sttp.client3.*
+import sttp.model.*
+import com.github.plokhotnyuk.jsoniter_scala.core.*
 
-import scala.util.chaining._
+import scala.util.chaining.*
+
+trait DerivedCodec[A] extends JsonValueCodec[A]
+object DerivedCodec {
+
+  inline def derived[A]: DerivedCodec[A] = new {
+    import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
+    private val inner = JsonCodecMaker.make[A]
+    export inner.*
+  }
+}
 
 case class Auth(username: String, password: String)
-
-case class IdName(id: String, name: String)
-object IdName {
-  implicit val idNameCodec: JsonValueCodec[IdName] = JsonCodecMaker.make[IdName]
-  implicit val listIdNameCodec: JsonValueCodec[List[IdName]] = JsonCodecMaker.make[List[IdName]]
+object Auth {
+  given Auth = Auth(
+    sys.env.getOrElse(
+      "SONATYPE_USERNAME",
+      sys.error("SONATYPE_USERNAME not set")
+    ),
+    sys.env.getOrElse(
+      "SONATYPE_PASSWORD",
+      sys.error("SONATYPE_PASSWORD not set")
+    )
+  )
 }
 
-case class IdNames(data: List[IdName])
-object IdNames {
-  implicit val idNamesCodec: JsonValueCodec[IdNames] = JsonCodecMaker.make[IdNames]
-}
-
-case class UniqueIpData(total: Int)
-object UniqueIpData {
-  implicit val uniqueIpDataCodec: JsonValueCodec[UniqueIpData] = JsonCodecMaker.make[UniqueIpData]
-}
-
-case class UniqueIpResp(data: UniqueIpData)
-object UniqueIpResp {
-  implicit val uniqueIpRespCodec: JsonValueCodec[UniqueIpResp] = JsonCodecMaker.make[UniqueIpResp]
-}
+case class IdName(id: String, name: String) derives DerivedCodec
+case class IdNames(data: List[IdName]) derives DerivedCodec
 
 object SonatypeAPI {
 
   private val backend = HttpClientSyncBackend()
 
-  private def query(auth: Auth, uri: Uri): Either[String, String] = {
-    val r = basicRequest.auth.basic(auth.username, auth.password)
+  private def query(using auth: Auth)(uri: Uri): Result[String] = {
+    val r = basicRequest.auth
+      .basic(auth.username, auth.password)
       .header("Accept", "application/json")
       .get(uri)
       .send(backend)
 
-    r.body.left.map(e => s"Failed to query SonatypeAPI (${r.code}): ${e}")
+    r.body.left.map(e => s"Failed to query SonatypeAPI (${r.code}): $e")
   }
 
-  def getProjectIDsByName(auth: Auth): Either[String, Map[String, String]] = {
-    println(s"Fetching list of projects")
-    query(auth, uri"https://oss.sonatype.org/service/local/stats/projects").flatMap { json =>
-      scala.util.Try {
+  def getProjectIDsByName(using Auth): Result[Map[String, String]] = for {
+    _ <- log(s"Fetching list of projects")
+    json <- query(uri"https://oss.sonatype.org/service/local/stats/projects")
+    result <- scala.util
+      .Try {
         readFromString[IdNames](json).data.map(elem => elem.name -> elem.id).toMap
-      }.toEither.left.map(_.getMessage)
-    }
-  }
+      }
+      .toEither
+      .left
+      .map(_.getMessage)
+  } yield result
 
-  def getStats(auth: Auth)(
-    name: String,
-    projectId: String,
-    organization: String,
-    tpe: String,
-    monthYear: YearMonth
-  ): Either[String, String] = {
-    println(s"Fetching stats for $name $organization::$projectId at $monthYear ($tpe)")
-    query(auth, {
+  def getStats(using Auth)(
+      name: String,
+      projectID: String,
+      organization: String,
+      tpe: String,
+      monthYear: YearMonth
+  ): Result[String] = for {
+    _ <- log(s"Fetching stats for $name $organization::$projectID at $monthYear ($tpe)")
+    csv <- query {
       val year = monthYear.getYear
       val month = monthYear.getMonth.getValue
-      uri"https://oss.sonatype.org/service/local/stats/$name?p=$projectId&g=$organization&a=&t=$tpe&from=${f"$year%04d$month%02d"}&nom=1"
-    }).map(_.trim) // TODO: check if empty
-  }
+      uri"https://oss.sonatype.org/service/local/stats/$name?p=$projectID&g=$organization&a=&t=$tpe&from=${f"$year%04d$month%02d"}&nom=1"
+    }
+  } yield csv.trim // TODO: check if empty 
 }
