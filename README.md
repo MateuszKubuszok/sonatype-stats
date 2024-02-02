@@ -9,6 +9,16 @@ which has a goal of:
  - [x] migrating to newer version of STTP
  - [ ] migrating from Travis CI to GH Actions
 
+## Running locally
+
+Install Scala CLI. Then run:
+
+```scala
+SONATYPE_PROJECT=[project name] SONATYPE_USERNAME=[username] SONATYPE_PASSWORD='password' scala-cli run .
+```
+
+putting the right values for your project and Sonatype user.
+
  ## TODO
 
  - [ ] detect automatically when the project was first published to NOT hardcode the first date

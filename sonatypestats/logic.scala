@@ -29,15 +29,20 @@ object SonatypeCache {
     def write(path: String, value: String): Result[Unit] =
       scala.util
         .Try {
-          val file = Path.of(path)
-          Files.createDirectories(file.getParent())
-          Files.writeString(file, value)
-          ()
+          if value.nonEmpty then {
+            val file = Path.of(path)
+            Files.createDirectories(file.getParent())
+            Files.writeString(file, value)
+            ()
+          }
         }
         .toEither
         .left
         .map(_.getMessage())
-        .flatTap(_ => log(s"Wrote successfully to $path cache"))
+        .flatTap(_ =>
+          if value.nonEmpty then log(s"Wrote successfully to $path cache")
+          else log(s"Skipped caching empty value to $path cache")
+        )
   }
 }
 
@@ -57,9 +62,9 @@ class SonatypeFetcher(using Auth)(
 ) {
 
   def fetchAll(cache: SonatypeCache = SonatypeCache.default): Result[Map[String, Map[YearMonth, Row]]] = {
-    val lastMonth = YearMonth.now(ZoneOffset.UTC)
-    val firstMonth = YearMonth.of(2017, 5)// lastMonth.minusMonths(4L) // TODO
-    val months = Iterator.iterate(lastMonth)(_.minusMonths(1L)).takeWhile(_.compareTo(firstMonth) >= 0)
+    // data is generated after month has ended, with a several-days-long delay
+    val lastMonth = YearMonth.now(ZoneOffset.UTC).minusMonths(1)
+    val months = Iterator.iterate(lastMonth)(_.minusMonths(1L))
 
     def cacheOrFetch(
         name: String,
@@ -69,10 +74,10 @@ class SonatypeFetcher(using Auth)(
         monthYear: YearMonth
     ): Result[String] = {
       val path = (name, tpe) match {
-        case ("slices_csv", "ip") => s"data/$organization/unique-ips/$monthYear.csv"
+        case ("slices_csv", "ip")  => s"data/$organization/unique-ips/$monthYear.csv"
         case ("slices_csv", "raw") => s"data/$organization/downloads/$monthYear.csv"
-        case ("timeline", _)     => s"data/$organization/total/$monthYear.json"
-        case _                   => ???
+        case ("timeline", _)       => s"data/$organization/total/$monthYear.json"
+        case _                     => ???
       }
       cache
         .read(path)
@@ -84,15 +89,19 @@ class SonatypeFetcher(using Auth)(
     }
 
     for {
-      _ <- log(s"Fetching everything from $firstMonth to $lastMonth for $projects and $organization")
+      _ <- log(s"Fetching everything from $lastMonth back for $projects and $organization")
       projectIDsByName <- SonatypeAPI.getProjectIDsByName
       result <- projectIDsByName.collect { case (name, id) if projects(name) => id }.iterator.traverse { projectID =>
         months
-          .traverse { month =>
+          .traverseWhile { month =>
             for {
               downloads <- cacheOrFetch("slices_csv", projectID, organization, "raw", month)
               uniqueIps <- cacheOrFetch("slices_csv", projectID, organization, "ip", month)
               timeline <- cacheOrFetch("timeline", projectID, organization, "ip", month)
+              _ <-
+                if (downloads.isEmpty() || uniqueIps.isEmpty() || timeline.isEmpty()) && month != lastMonth then
+                  Left("No data for this month")
+                else Right(())
             } yield month -> Row(downloads, uniqueIps, timeline)
           }
           .map(stats => projectID -> stats.toMap)
