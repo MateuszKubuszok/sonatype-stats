@@ -21,6 +21,6 @@ putting the right values for your project and Sonatype user.
 
  ## TODO
 
- - [ ] detect automatically when the project was first published to NOT hardcode the first date
+ - [x] detect automatically when the project was first published to NOT hardcode the first date
  - [ ] generate plots like the original
  - [ ] create GH Action to automatically update stats every one in a while
