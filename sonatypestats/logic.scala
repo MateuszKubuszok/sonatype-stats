@@ -4,6 +4,7 @@ import java.nio.file.*
 import java.time.{YearMonth, ZoneOffset}
 
 import scala.util.chaining.*
+import scala.collection.immutable.ListMap
 
 sealed trait SonatypeCache {
 
@@ -96,17 +97,19 @@ final class SonatypeFetcher(using Auth)(
               for {
                 downloads <- cacheOrFetch("slices_csv", projectID, organization, "raw", month)
                 uniqueIps <- cacheOrFetch("slices_csv", projectID, organization, "ip", month)
+                _ <-
+                  if (downloads.trim.isEmpty && uniqueIps.trim.isEmpty) && month != lastMonth then
+                    Left("No data for this month")
+                  else Right(())
                 timelineJson <- cacheOrFetch("timeline", projectID, organization, "ip", month)
                 downloadsData <- decodeCsv[TimePointDetail](downloads)
                 uniqueIpsData <- decodeCsv[TimePointDetail](uniqueIps)
                 timelineData <- decodeJson[TimelineData](timelineJson)
-                _ <-
-                  if timelineData.data.total <= 0 && month != lastMonth then Left("No data for this month")
-                  else Right(())
+
               } yield month -> TimePoint(downloadsData, uniqueIpsData, timelineData.data)
             }
-            .map(stats => projectName -> stats.toMap)
+            .map(stats => projectName -> ListMap.from(stats))
       }
-    } yield result.toMap
+    } yield ListMap.from(result)
   }
 }

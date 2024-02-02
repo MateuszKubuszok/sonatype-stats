@@ -10,8 +10,8 @@ def main(args: Array[String]): Unit = {
     (projectName, monthToTimePoints) <- data
     _ = println(s"$projectName:")
     (month, TimePoint(downloads, uniqueIps, Timeline(_, _, _, totalAll, _))) <- monthToTimePoints
-    _ = println(s"  $month:")
   } {
+    println(s"  $month:")
     println(s"    downloads:")
     for {
       TimePointDetail(name, total, fraction) <- downloads
