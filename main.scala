@@ -7,11 +7,8 @@ def main(args: Array[String]): Unit = {
   val result = for {
     data <- fetcher.fetchAll()
     _ <- log(s"Fetched all data successfully")
-    dataJson = encodeJson(data)
-    dataJsonPath = Path.of("data/data.json")
-    _ = Files.writeString(dataJsonPath, dataJson)
-    _ <- log(s"Overriden $dataJsonPath with:")
-    _ <- log(encodeJson(data))
+    (jsonFile, htmlFile) = renderStats(data)
+    _ <- log(s"Updated $jsonFile and $htmlFile")
   } yield ()
 
   result match {

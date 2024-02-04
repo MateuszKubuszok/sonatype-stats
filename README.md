@@ -18,9 +18,3 @@ SONATYPE_PROJECT=[project name] SONATYPE_USERNAME=[username] SONATYPE_PASSWORD='
 ```
 
 putting the right values for your project and Sonatype user. The data will be generated in `data` directory.
-
- ## TODO
-
- - [x] detect automatically when the project was first published to NOT hardcode the first date
- - [ ] generate plots like the original
- - [ ] create GH Action to automatically update stats every one in a while
