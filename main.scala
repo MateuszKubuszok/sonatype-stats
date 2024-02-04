@@ -1,3 +1,4 @@
+import java.nio.file.*
 import sonatypestats.*
 
 def main(args: Array[String]): Unit = {
@@ -6,22 +7,12 @@ def main(args: Array[String]): Unit = {
   val result = for {
     data <- fetcher.fetchAll()
     _ <- log(s"Fetched all data successfully")
-  } yield for {
-    (projectName, monthToTimePoints) <- data
-    _ = println(s"$projectName:")
-    (month, TimePoint(downloads, uniqueIps, Timeline(_, _, _, totalAll, _))) <- monthToTimePoints
-  } {
-    println(s"  $month:")
-    println(s"    downloads:")
-    for {
-      TimePointDetail(name, total, fraction) <- downloads
-    } println(s"      $name: $total ($fraction of $totalAll)")
-
-    println(s"    unieque IPs:")
-    for {
-      TimePointDetail(name, total, fraction) <- uniqueIps
-    } println(s"      $name: $total ($fraction of all)")
-  }
+    dataJson = encodeJson(data)
+    dataJsonPath = Path.of("data/data.json")
+    _ = Files.writeString(dataJsonPath, dataJson)
+    _ <- log(s"Overriden $dataJsonPath with:")
+    _ <- log(encodeJson(data))
+  } yield ()
 
   result match {
     case Left(value) => println(value)

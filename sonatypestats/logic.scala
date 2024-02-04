@@ -60,7 +60,7 @@ final class SonatypeFetcher(using Auth)(
     )
 ) {
 
-  def fetchAll(cache: SonatypeCache = SonatypeCache.default): Result[Map[ProjectName, Map[YearMonth, TimePoint]]] = {
+  def fetchAll(cache: SonatypeCache = SonatypeCache.default): Result[CompleteData] = {
     // data is generated after month has ended, with a several-days-long delay
     val lastMonth = YearMonth.now(ZoneOffset.UTC).minusMonths(1)
     val months = Iterator.iterate(lastMonth)(_.minusMonths(1L))
@@ -102,14 +102,13 @@ final class SonatypeFetcher(using Auth)(
                     Left("No data for this month")
                   else Right(())
                 timelineJson <- cacheOrFetch("timeline", projectID, organization, "ip", month)
-                downloadsData <- decodeCsv[TimePointDetail](downloads)
-                uniqueIpsData <- decodeCsv[TimePointDetail](uniqueIps)
+                downloadsData <- decodeCsv[TimePointDetail](downloads).map(_.groupMapReduce(_._1)(_._2)((a, _) => a))
+                uniqueIpsData <- decodeCsv[TimePointDetail](uniqueIps).map(_.groupMapReduce(_._1)(_._2)((a, _) => a))
                 timelineData <- decodeJson[TimelineData](timelineJson)
-
               } yield month -> TimePoint(downloadsData, uniqueIpsData, timelineData.data)
             }
             .map(stats => projectName -> ListMap.from(stats))
       }
-    } yield ListMap.from(result)
+    } yield CompleteData(ListMap.from(result))
   }
 }

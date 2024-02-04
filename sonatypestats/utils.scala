@@ -71,6 +71,10 @@ def decodeJson[A: JsonValueCodec](json: String): Result[A] =
     .left
     .map(_.getMessage)
 
+def encodeJson[A: JsonValueCodec](value: A): String =
+  writeToString(value, WriterConfig.withIndentionStep(2))
+
+
 extension [A](res: Result[A])
   def flatTap[B](f: A => Result[B]): Result[A] =
     res.flatMap(a => f(a).map(_ => a))

@@ -1,5 +1,7 @@
 package sonatypestats
 
+import java.time.YearMonth
+
 import com.github.gekomad.ittocsv.core.FromCsv
 
 final case class Auth(username: String, password: String)
@@ -26,5 +28,13 @@ final case class Timeline(projectId: ProjectID, groupId: String, `type`: String,
     derives DerivedCodec
 final case class TimelineData(data: Timeline) derives DerivedCodec
 
-final case class TimePointDetail(name: ArtifactName, downloads: String, fractionOfAll: String) derives DerivedCvsDecoder
-final case class TimePoint(downloads: Vector[TimePointDetail], uniquIps: Vector[TimePointDetail], timeline: Timeline)
+final case class TimePointDetail(name: ArtifactName, downloads: String, fractionOfAll: String)
+    derives DerivedCodec,
+      DerivedCvsDecoder
+final case class TimePoint(
+    downloads: Map[ArtifactName, String],
+    uniqueIps: Map[ArtifactName, String],
+    timeline: Timeline
+)
+
+final case class CompleteData(data: Map[ProjectName, Map[YearMonth, TimePoint]]) derives DerivedCodec

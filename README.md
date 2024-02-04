@@ -17,7 +17,7 @@ Install Scala CLI. Then run:
 SONATYPE_PROJECT=[project name] SONATYPE_USERNAME=[username] SONATYPE_PASSWORD='password' scala-cli run .
 ```
 
-putting the right values for your project and Sonatype user.
+putting the right values for your project and Sonatype user. The data will be generated in `data` directory.
 
  ## TODO
 
