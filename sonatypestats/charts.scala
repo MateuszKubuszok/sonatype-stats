@@ -20,22 +20,134 @@ def renderStats(data: CompleteData): (Path, Path) = {
       // list of all organizations
       const organizations = Object.keys(data.data);
 
-      const labels = [...new Set(Object.values(data.data).flatMap(Object.keys))].sort();
+      // list of all months
+      const months = [...new Set(Object.values(data.data).flatMap(Object.keys))].sort();
 
-      const organizationsDatasets = organizations.map(name => 
-        ({
-          "label": name,
-          "data": Object.values(data.data[name]).map(v => v.timeline.total).reverse()
-        })
-      );
+      const organizationsDatasets = organizations.map(organization => {
+        const timePoints = Object.values(data.data[organization]);
+        return ({
+          "label": `$${organization} (unique IPs)`,
+          "data": timePoints.map(timePoint => timePoint.timeline.total).reverse()
+        });
+      });
+
+      const artifactDatasets = organizations.flatMap(organization => {
+        const timePoints = Object.values(data.data[organization]);
+        const artifactNames = [...new Set(timePoints.flatMap(timePoint => 
+          (timePoint && timePoint.downloads) ? Object.keys(timePoint.downloads) : []
+        ))].sort();
+        return artifactNames.flatMap(artifact => {
+          return [
+            {
+              "label": `$${organization}::$${artifact} (unique IPs)`,
+              "data": timePoints.map(timePoint => (timePoint && timePoint.uniqueIps) ? timePoint.uniqueIps[artifact] : 0).reverse(),
+              "hidden": true
+            },
+            {
+              "label": `$${organization}::$${artifact} (downloads)`,
+              "data": timePoints.map(timePoint => (timePoint && timePoint.downloads) ? timePoint.downloads[artifact] : 0).reverse(),
+              "hidden": true
+            }
+          ];
+        });
+      });
+
+      const getOrCreateLegendList = (chart, id) => {
+        const legendContainer = document.getElementById(id);
+        let listContainer = legendContainer.querySelector('ul');
+
+        if (!listContainer) {
+          listContainer = document.createElement('ul');
+          listContainer.style.display = 'block';
+          listContainer.style.flexDirection = 'row';
+          listContainer.style.margin = 0;
+          listContainer.style.padding = 0;
+
+          legendContainer.appendChild(listContainer);
+        }
+
+        return listContainer;
+      };
+
+      const htmlLegendPlugin = {
+        id: 'htmlLegend',
+        afterUpdate(chart, args, options) {
+          const ul = getOrCreateLegendList(chart, options.containerID);
+
+          // Remove old legend items
+          while (ul.firstChild) {
+            ul.firstChild.remove();
+          }
+
+          // Reuse the built-in legendItems generator
+          const items = chart.options.plugins.legend.labels.generateLabels(chart);
+
+          items.forEach(item => {
+            const li = document.createElement('li');
+            li.style.alignItems = 'center';
+            li.style.cursor = 'pointer';
+            li.style.display = 'flex';
+            li.style.flexDirection = 'row';
+            li.style.marginLeft = '10px';
+
+            li.onclick = () => {
+              const {type} = chart.config;
+              if (type === 'pie' || type === 'doughnut') {
+                // Pie and doughnut charts only have a single dataset and visibility is per item
+                chart.toggleDataVisibility(item.index);
+              } else {
+                chart.setDatasetVisibility(item.datasetIndex, !chart.isDatasetVisible(item.datasetIndex));
+              }
+              chart.update();
+            };
+
+            // Color box
+            const boxSpan = document.createElement('span');
+            boxSpan.style.background = item.fillStyle;
+            boxSpan.style.borderColor = item.strokeStyle;
+            boxSpan.style.borderWidth = item.lineWidth + 'px';
+            boxSpan.style.display = 'inline-block';
+            boxSpan.style.flexShrink = 0;
+            boxSpan.style.height = '20px';
+            boxSpan.style.marginRight = '10px';
+            boxSpan.style.width = '20px';
+
+            // Text
+            const textContainer = document.createElement('p');
+            textContainer.style.color = item.fontColor;
+            textContainer.style.margin = 0;
+            textContainer.style.padding = 0;
+            textContainer.style.textDecoration = item.hidden ? 'line-through' : '';
+
+            const text = document.createTextNode(item.text);
+            textContainer.appendChild(text);
+
+            li.appendChild(boxSpan);
+            li.appendChild(textContainer);
+            ul.appendChild(li);
+          });
+        }
+      };
 
       const ctx = document.getElementById('stats-chart');
       const cfg = {
         type: 'line',
         data: {
-          labels: labels,
-          datasets: organizationsDatasets
-        }
+          labels: months,
+          datasets: [...organizationsDatasets, ...artifactDatasets]
+        },
+        options: {
+          plugins: {
+            htmlLegend: {
+              containerID: 'legend-container',
+            },
+            legend: {
+              display: false,
+            }
+          },
+          responsive: true
+        },
+        plugins: [htmlLegendPlugin],
       };
 
       new Chart(ctx, cfg);
