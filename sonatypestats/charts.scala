@@ -6,6 +6,7 @@ def renderStats(data: CompleteData): (Path, Path) = {
   val json = encodeJson(data)
   val jsonFile = Path.of("data/data.json")
   Files.writeString(jsonFile, json)
+
   val html = s"""<!DOCTYPE html>
   <head>
    <title>Sonatype stats</title>
@@ -13,9 +14,11 @@ def renderStats(data: CompleteData): (Path, Path) = {
     const data = $json;
    </script>
    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-autocolors"></script>
   </head>
   <body>
-    <canvas id="stats-chart" />
+    <canvas id="stats-chart" style="width: 100%; height: 66vh;"></canvas>
+    <div id="legend-container" style="width: 100%; height: 34vh; overflow: scroll;"></div>
     <script>
       // list of all organizations
       const organizations = Object.keys(data.data);
@@ -68,6 +71,8 @@ def renderStats(data: CompleteData): (Path, Path) = {
 
         return listContainer;
       };
+
+      const autocolors = window['chartjs-plugin-autocolors'];
 
       const htmlLegendPlugin = {
         id: 'htmlLegend',
@@ -138,6 +143,10 @@ def renderStats(data: CompleteData): (Path, Path) = {
         },
         options: {
           plugins: {
+            autocolors: {
+              offset: organizations.length,
+              repeat: 1
+            },
             htmlLegend: {
               containerID: 'legend-container',
             },
@@ -147,7 +156,7 @@ def renderStats(data: CompleteData): (Path, Path) = {
           },
           responsive: true
         },
-        plugins: [htmlLegendPlugin],
+        plugins: [autocolors, htmlLegendPlugin],
       };
 
       new Chart(ctx, cfg);
@@ -156,6 +165,6 @@ def renderStats(data: CompleteData): (Path, Path) = {
 </html>
 """
   val htmlFile = Path.of("data/index.html")
-  Files.writeString(jsonFile, json)
+  Files.writeString(htmlFile, html)
   (jsonFile, htmlFile)
 }

@@ -92,22 +92,32 @@ final class SonatypeFetcher(using Auth)(
       projectIDsByName <- SonatypeAPI.getProjectIDsByName
       result <- projectIDsByName.collect { case (name, id) if projects(name) => (name, id) }.iterator.traverse {
         case (projectName, projectID) =>
+          lazy val stubTimeline =
+            s"""{"data":{"projectId":"$projectID","groupId":"$projectName","type":"IP","total":0,"timeline":[0]}}"""
           months
             .traverseWhile { month =>
               for {
                 downloads <- cacheOrFetch("slices_csv", projectID, organization, "raw", month)
                 uniqueIps <- cacheOrFetch("slices_csv", projectID, organization, "ip", month)
-                _ <-
-                  if (downloads.trim.isEmpty && uniqueIps.trim.isEmpty) && month != lastMonth then
-                    Left("No data for this month")
-                  else Right(())
-                timelineJson <- cacheOrFetch("timeline", projectID, organization, "ip", month)
+                // timeline always returns JSON, so we cannot rely on checking if response is empty
+                // if we want to avoid caching value for a moneth that hasn't been computed yet
+                skipTimeline <-
+                  if downloads.trim.isEmpty && uniqueIps.trim.isEmpty then
+                    if month != lastMonth then Left("No data for this month")
+                    else Right(true)
+                  else Right(false)
+                timelineJson <-
+                  if skipTimeline then Right(stubTimeline)
+                  else cacheOrFetch("timeline", projectID, organization, "ip", month)
                 downloadsData <- decodeCsv[TimePointDetail](downloads).map(_.groupMapReduce(_._1)(_._2)((a, _) => a))
                 uniqueIpsData <- decodeCsv[TimePointDetail](uniqueIps).map(_.groupMapReduce(_._1)(_._2)((a, _) => a))
                 timelineData <- decodeJson[TimelineData](timelineJson)
               } yield month -> TimePoint(downloadsData, uniqueIpsData, timelineData.data)
             }
-            .map(stats => projectName -> ListMap.from(stats))
+            .map(stats =>
+              projectName -> ListMap
+                .from(if stats.headOption.exists(_._2.timeline.total == 0) then stats.drop(1) else stats)
+            )
       }
     } yield CompleteData(ListMap.from(result))
   }

@@ -7,6 +7,7 @@ which has a goal of:
  - [x] migrating from Scala 2.12 to Scala 3
  - [x] migrating from Circe to Jsoniter Scala
  - [x] migrating to newer version of STTP
+ - [x] migrating charts to Chart.js
  - [ ] migrating from Travis CI to GH Actions
 
 ## Running locally
