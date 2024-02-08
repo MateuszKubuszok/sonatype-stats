@@ -1,0 +1,25 @@
+name: 'Sonatype Stats'
+description: 'Generates '
+inputs:
+  sonatype-project:
+    description: 'Name of the project on Sonatype OSS'
+    required: true
+  sonatype-username:
+    description: 'Username you use to login into Sonatype OSS'
+    required: true
+  sonatype-password:
+    description: 'Password you use to login into Sonatype OSS'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install Scala CLI
+      uses: VirtusLab/scala-cli-setup@v0.1
+
+    - name: Run Statistics generator
+      run: scala-cli run .
+      shell: bash
+      env:
+        SONATYPE_PROJECT: ${{ inputs.sonatype-project }}
+        SONATYPE_USERNAME: ${{ inputs.sonatype-username }}
+        SONATYPE_PASSWORD: ${{ inputs.sonatype-password }}

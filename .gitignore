@@ -9,3 +9,4 @@ project/metals.sbt
 # other
 .scala-build
 *.log
+data/
