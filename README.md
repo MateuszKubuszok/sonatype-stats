@@ -20,9 +20,7 @@ SONATYPE_PROJECT=[project name] SONATYPE_USERNAME=[username] SONATYPE_PASSWORD='
 
 putting the right values for your project and Sonatype user. The data will be generated in `data` directory.
 
-## Running in scheduled GitHub Action (WIP!!!)
-
-> Work in Progress!!! The following commands are not yet expected to work!!!
+## Running in scheduled GitHub Action
 
 We can create a GH Action which could publish Sonatype Stats on GitHub Pages in a dedicated repository:
 
@@ -83,5 +81,7 @@ Usually it takes several days before they are avaiable (often around a week), so
 (Stats once downloaded are cached, so we only have to add missing ones).
 
 Once it finishes running, don't forget to enable GitHub Pages for your repository.
+
+See example for [Scalaland.io](https://scalalandio.github.io/sonatype-stats/).
 
 > You can tweak this setup as it only shows the most basic use case.
