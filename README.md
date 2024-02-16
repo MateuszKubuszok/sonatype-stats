@@ -62,7 +62,7 @@ jobs:
           key: setup-1
 
       - name: Fetch and render Sonatype Stats
-        uses: MateuszKubuszok/sonatype-stats@master
+        uses: MateuszKubuszok/sonatype-stats@v1.0.0
         with:
           sonatype-project: ${{ vars.SONATYPE_PROJECT }}
           sonatype-username: ${{ secrets.SONATYPE_USERNAME }}
