@@ -1,5 +1,5 @@
 name: 'Sonatype Stats'
-description: 'Generates '
+description: 'Generates index.html and JSONs with stats downloaded from Sonatype Central Statistics'
 inputs:
   sonatype-project:
     description: 'Name of the project on Sonatype OSS'
