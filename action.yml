@@ -1,5 +1,8 @@
 name: 'Sonatype Stats'
 description: 'Generates index.html and JSONs with stats downloaded from Sonatype Central Statistics'
+branding:
+  icon: 'activity'
+  color: 'green'
 inputs:
   sonatype-project:
     description: 'Name of the project on Sonatype OSS'
@@ -15,9 +18,6 @@ runs:
   steps:
     - name: Install Scala CLI
       uses: VirtusLab/scala-cli-setup@v1.1.3
-
-    - name: Checkout Scala CLI acript
-      uses: actions/checkout@v2
 
     - name: Run Statistics generator
       run: scala-cli run "$GITHUB_ACTION_PATH"

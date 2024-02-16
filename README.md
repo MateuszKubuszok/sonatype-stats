@@ -34,12 +34,18 @@ We can create a GH Action which could publish Sonatype Stats on GitHub Pages in 
    * setup `SONATYPE_PROJECT` secret
  * create GitHub [Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
    with an access to the repository (we'll be using [Publish to GitHub Pages](https://github.com/marketplace/actions/publish-to-github-pages) action)
+   * in Fine-graned tokens you need to grant "Read access to metadata" and "Read and Write access to code and pages" just for the repository which
+     will host stats on its GH Pages
  * finally, create in your repository file `.github/workflows/sonatype-stats.yml` with the content like below:
 
 ```yml
 name: Publish Sonatype Stats to GitHub Pages
 
 on:
+  push:
+    branches:
+      # update index.html also if anything was modified in the workflow
+      - master
   schedule:
     # * is a special character in YAML so you have to quote this string
     - cron:  '0 0 7,15 * *'
@@ -49,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       - name: Cache fetched data
         uses: actions/cache@v4
@@ -58,9 +64,9 @@ jobs:
           key: setup-1
 
       - name: Fetch and render Sonatype Stats
-        run: MateuszKubuszok/sonatype-stats@master
-        env:
-          sonatype-project: ${{ secrets.SONATYPE_PROJECT }}
+        uses: MateuszKubuszok/sonatype-stats@master
+        with:
+          sonatype-project: ${{ vars.SONATYPE_PROJECT }}
           sonatype-username: ${{ secrets.SONATYPE_USERNAME }}
           sonatype-password: ${{ secrets.SONATYPE_PASSWORD }}
 
