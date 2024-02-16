@@ -17,7 +17,7 @@ runs:
       uses: VirtusLab/scala-cli-setup@v0.1
 
     - name: Run Statistics generator
-      run: scala-cli run .
+      run: ls -la && scala-cli run .
       shell: bash
       env:
         SONATYPE_PROJECT: ${{ inputs.sonatype-project }}
