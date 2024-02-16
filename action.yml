@@ -16,10 +16,14 @@ runs:
     - name: Install Scala CLI
       uses: VirtusLab/scala-cli-setup@v0.1
 
+    - name: Checkout Scala CLI acript
+      uses: actions/checkout@v2
+
     - name: Run Statistics generator
-      run: ls -la && scala-cli run .
+      run: scala-cli run "$GITHUB_ACTION_PATH"
       shell: bash
       env:
         SONATYPE_PROJECT: ${{ inputs.sonatype-project }}
         SONATYPE_USERNAME: ${{ inputs.sonatype-username }}
         SONATYPE_PASSWORD: ${{ inputs.sonatype-password }}
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
