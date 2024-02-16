@@ -8,7 +8,7 @@ which has a goal of:
  - [x] migrating from Circe to Jsoniter Scala
  - [x] migrating to newer version of STTP
  - [x] migrating charts to Chart.js
- - [x] migrating from Travis CI to GH Actions (WIP!)
+ - [x] migrating from Travis CI to GH Actions
 
 ## Running locally
 
