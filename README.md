@@ -10,6 +10,20 @@ which has a goal of:
  - [x] migrating charts to Chart.js
  - [x] migrating from Travis CI to GH Actions
 
+## What it does
+
+Sonatype exposes projects stats only after you log in, and only for your projects (Central Statistics). Its UI also only shows last 12 months.
+
+Through their API you can fetch data since the beginning of the project for every artifact. And this is what this script does:
+
+ * it fetches unique IPs in every month since project start
+ * it fetches both unique IPs and all downloads for every artifact since the project start
+ * it creates chart containing all of that data (using Chart.js)
+ * it saves both chart and values from Sonatype in `data` directory
+ * it uses content of `data` directory as cache to not download the same data twice unnecessarily
+
+You can then looks though the statistics, archive them or publish on GitHub pages.
+
 ## Running locally
 
 Install Scala CLI. Then run:
@@ -29,7 +43,7 @@ We can create a GH Action which could publish Sonatype Stats on GitHub Pages in 
    * setup `SONATYPE_USERNAME` secret
    * setup `SONATYPE_PASSWORD` secret
  * find which project ID you want to use (you can check what projects you see on e.g. a Central Statistics after you log in)
-   * setup `SONATYPE_PROJECT` secret
+   * setup `SONATYPE_PROJECT` variable
  * create GitHub [Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
    with an access to the repository (we'll be using [Publish to GitHub Pages](https://github.com/marketplace/actions/publish-to-github-pages) action)
    * in Fine-graned tokens you need to grant "Read access to metadata" and "Read and Write access to code and pages" just for the repository which
